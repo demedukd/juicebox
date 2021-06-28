@@ -63,6 +63,7 @@ async function getAllUsers() {
       FROM users;
     `);
 
+    console.log(rows);
     return rows;
   } catch (error) {
     throw error;
@@ -84,6 +85,25 @@ async function getUserById(userId) {
     }
 
     user.posts = await getPostsByUser(userId);
+
+    return user;
+  } catch (error) {
+    throw error;
+  }
+}
+
+async function getUserByUsername(username) {
+  try {
+    const {
+      rows: [user],
+    } = await client.query(
+      `
+      SELECT *
+      FROM users
+      WHERE username=$1;
+    `,
+      [username]
+    );
 
     return user;
   } catch (error) {
@@ -360,6 +380,7 @@ module.exports = {
   updateUser,
   getAllUsers,
   getUserById,
+  getUserByUsername,
   createPost,
   updatePost,
   getAllPosts,
