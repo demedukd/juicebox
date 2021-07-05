@@ -1,7 +1,9 @@
 const { Client } = require("pg"); // imports the pg module
-const client = new Client(
-  process.env.DATABASE_URL || "postgres://localhost:5432/juicebox-dev"
-);
+
+const connectionString =
+  process.env.DATABASE_URL || "postgres://localhost:5432/juicebox-dev";
+
+const client = new Client(connectionString);
 
 /**
  * USER Methods
@@ -64,7 +66,6 @@ async function getAllUsers() {
       FROM users;
     `);
 
-    console.log(rows);
     return rows;
   } catch (error) {
     throw error;
@@ -82,7 +83,10 @@ async function getUserById(userId) {
     `);
 
     if (!user) {
-      return null;
+      throw {
+        name: "UserNotFoundError",
+        message: "A user with that id does not exist",
+      };
     }
 
     user.posts = await getPostsByUser(userId);
@@ -101,10 +105,17 @@ async function getUserByUsername(username) {
       `
       SELECT *
       FROM users
-      WHERE username=$1;
+      WHERE username=$1
     `,
       [username]
     );
+
+    if (!user) {
+      throw {
+        name: "UserNotFoundError",
+        message: "A user with that username does not exist",
+      };
+    }
 
     return user;
   } catch (error) {
@@ -220,14 +231,12 @@ async function getPostById(postId) {
       [postId]
     );
 
-    // THIS IS NEW
     if (!post) {
       throw {
         name: "PostNotFoundError",
         message: "Could not find a post with that postId",
       };
     }
-    // NEWNESS ENDS HERE
 
     const { rows: tags } = await client.query(
       `
@@ -391,10 +400,10 @@ module.exports = {
   getAllUsers,
   getUserById,
   getUserByUsername,
+  getPostById,
   createPost,
   updatePost,
   getAllPosts,
-  getPostById,
   getPostsByUser,
   getPostsByTagName,
   createTags,
