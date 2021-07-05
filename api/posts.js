@@ -1,19 +1,10 @@
-// api/posts.js
 const express = require("express");
 const postsRouter = express.Router();
+
 const { requireUser } = require("./utils");
-postsRouter.use((req, res, next) => {
-  console.log("A request is being made to /posts");
-  next();
-});
 
-postsRouter.post("/", requireUser, async (req, res, next) => {
-  res.send({ message: "under construction" });
-});
-// NEW
-const { getAllPosts, updatePost, getPostById } = require("../db");
+const { createPost, getAllPosts, updatePost, getPostById } = require("../db");
 
-// UPDATE
 postsRouter.get("/", async (req, res) => {
   try {
     const allPosts = await getAllPosts();
@@ -47,18 +38,25 @@ postsRouter.post("/", requireUser, async (req, res, next) => {
   const tagArr = tags.trim().split(/\s+/);
   const postData = {};
 
-  // only send the tags if there are some to send
   if (tagArr.length) {
     postData.tags = tagArr;
   }
 
   try {
-    // add authorId, title, content to postData object
-    (postData = postData.authorId), postData.title, postData.content;
+    postData.authorId = req.user.id;
+    postData.title = title;
+    postData.content = content;
+
     const post = await createPost(postData);
-    // this will create the post and the tags for us
-    // if the post comes back, res.send({ post });
-    // otherwise, next an appropriate error object
+
+    if (post) {
+      res.send(post);
+    } else {
+      next({
+        name: "PostCreationError",
+        message: "There was an error creating your post. Please try again.",
+      });
+    }
   } catch ({ name, message }) {
     next({ name, message });
   }
