@@ -1,25 +1,26 @@
-// api/users.js
 const express = require("express");
 const usersRouter = express.Router();
+
+const { createUser, getAllUsers, getUserByUsername } = require("../db");
+
 const jwt = require("jsonwebtoken");
 
-usersRouter.use((req, res, next) => {
-  console.log("A request is being made to /users");
-  next();
-});
-
-const { getAllUsers, getUserByUsername, createUser } = require("../db");
-
 usersRouter.get("/", async (req, res) => {
-  const users = await getAllUsers();
-  res.send({
-    users,
-  });
+  try {
+    const users = await getAllUsers();
+
+    res.send({
+      users,
+    });
+  } catch ({ name, message }) {
+    next({ name, message });
+  }
 });
 
 usersRouter.post("/login", async (req, res, next) => {
   const { username, password } = req.body;
 
+  // request must have both
   if (!username || !password) {
     next({
       name: "MissingCredentialsError",
@@ -29,13 +30,23 @@ usersRouter.post("/login", async (req, res, next) => {
 
   try {
     const user = await getUserByUsername(username);
+
     if (user && user.password == password) {
       const token = jwt.sign(
-        { id: user.id, username: user.username },
+        {
+          id: user.id,
+          username,
+        },
         process.env.JWT_SECRET,
-        { expiresIn: "1h" }
+        {
+          expiresIn: "1w",
+        }
       );
-      res.send({ message: "you're logged in!", token: token });
+
+      res.send({
+        message: "you're logged in!",
+        token,
+      });
     } else {
       next({
         name: "IncorrectCredentialsError",
@@ -57,7 +68,7 @@ usersRouter.post("/register", async (req, res, next) => {
     if (_user) {
       next({
         name: "UserExistsError",
-        message: "A user by that username already exists.",
+        message: "A user by that username already exists",
       });
     }
 
